@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>IoT Sensor Dashboard</title>
+
+    <style>
+
+        body {
+
+            margin: 0;
+
+            font-family: Arial, sans-serif;
+
+            background: #f2f2f2;
+
+            text-align: center;
+
+        }
+
+        h1 {
+
+            background: #222;
+
+            color: white;
+
+            padding: 25px;
+
+            margin: 0;
+
+        }
+
+        .container {
+
+            display: flex;
+
+            justify-content: center;
+
+            gap: 30px;
+
+            flex-wrap: wrap;
+
+            margin-top: 50px;
+
+        }
+
+        .card {
+
+            background: white;
+
+            width: 280px;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+
+        }
+
+        .value {
+
+            font-size: 55px;
+
+            font-weight: bold;
+
+            margin: 20px;
+
+        }
+
+        .temperature {
+
+            color: #e74c3c;
+
+        }
+
+        .humidity {
+
+            color: #3498db;
+
+        }
+
+        .unit {
+
+            font-size: 25px;
+
+        }
+
+        #status {
+
+            margin-top: 30px;
+
+            color: green;
+
+            font-weight: bold;
+
+        }
+
+        #updated {
+
+            margin-top: 10px;
+
+            color: #555;
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <h1>
+        ESP8266 IoT Sensor Dashboard
+    </h1>
+
+
+    <div class="container">
+
+
+        <!-- Temperature -->
+
+        <div class="card">
+
+            <h2>Temperature</h2>
+
+            <div class="value temperature">
+
+                <span id="temperature">
+                    --
+                </span>
+
+                <span class="unit">
+                    °C
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Humidity -->
+
+        <div class="card">
+
+            <h2>Humidity</h2>
+
+            <div class="value humidity">
+
+                <span id="humidity">
+                    --
+                </span>
+
+                <span class="unit">
+                    %
+                </span>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <div id="status">
+        Connecting to Firebase...
+    </div>
+
+
+    <div id="updated">
+        Waiting for data...
+    </div>
+
+
+    <script>
+
+
+        async function getSensorData() {
+
+            try {
+
+                const response =
+                    await fetch("/api/sensor");
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Server error"
+                    );
+
+                }
+
+                const data =
+                    await response.json();
+
+
+                // Temperature
+
+                if (data.temperature !== null) {
+
+                    document.getElementById(
+                        "temperature"
+                    ).textContent =
+                        Number(
+                            data.temperature
+                        ).toFixed(1);
+
+                }
+
+
+                // Humidity
+
+                if (data.humidity !== null) {
+
+                    document.getElementById(
+                        "humidity"
+                    ).textContent =
+                        Number(
+                            data.humidity
+                        ).toFixed(1);
+
+                }
+
+
+                // Status
+
+                document.getElementById(
+                    "status"
+                ).textContent =
+                    "● Live data connected";
+
+
+                // Firebase update value
+
+                if (data.lastUpdate !== null) {
+
+                    document.getElementById(
+                        "updated"
+                    ).textContent =
+                        "Last sensor update: " +
+                        data.lastUpdate;
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                document.getElementById(
+                    "status"
+                ).textContent =
+                    "● Connection error";
+
+            }
+
+        }
+
+
+        // Get data immediately
+
+        getSensorData();
+
+
+        // Get new data every 2 seconds
+
+        setInterval(
+            getSensorData,
+            2000
+        );
+
+
+    </script>
+
+</body>
+
+</html>
