@@ -1,67 +1,111 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, send_file, jsonify
 import firebase_admin
 from firebase_admin import credentials, db
+import traceback
 
 app = Flask(__name__)
 
-# --------------------------------------------------
-# Firebase initialization
-# --------------------------------------------------
+# ---------------------------------------
+# Firebase Admin SDK
+# ---------------------------------------
+try:
+    cred = credentials.Certificate("serviceAccountKey.json")
 
-cred = credentials.Certificate("serviceAccountKey.json")
+    firebase_admin.initialize_app(cred, {
+        "databaseURL": "https://iots-2f517-default-rtdb.firebaseio.com/"
+    })
 
-firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://iots-2f517-default-rtdb.firebaseio.com/"
-})
+    print("====================================")
+    print("Firebase initialized successfully")
+    print("====================================")
 
-# --------------------------------------------------
-# Read sensor data
-# --------------------------------------------------
+except Exception as e:
+    print("====================================")
+    print("Firebase initialization ERROR")
+    print(e)
+    print("====================================")
+    traceback.print_exc()
 
+
+# ---------------------------------------
+# Get sensor data from Firebase
+# ---------------------------------------
 def get_sensor_data():
 
-    ref = db.reference("/sensor")
-    data = ref.get()
+    try:
+        ref = db.reference("/sensor")
 
-    if data is None:
+        data = ref.get()
+
+        print("Firebase data received:")
+        print(data)
+
+        if data is None:
+            return {
+                "temperature": None,
+                "humidity": None,
+                "lastUpdate": None
+            }
+
         return {
-            "temperature": None,
-            "humidity": None,
-            "lastUpdate": None
+            "temperature": data.get("temperature"),
+            "humidity": data.get("humidity"),
+            "lastUpdate": data.get("lastUpdate")
         }
 
-    return {
-        "temperature": data.get("temperature"),
-        "humidity": data.get("humidity"),
-        "lastUpdate": data.get("lastUpdate")
-    }
+    except Exception as e:
+
+        print("====================================")
+        print("Firebase READ ERROR")
+        print(e)
+        print("====================================")
+
+        traceback.print_exc()
+
+        raise
 
 
-# --------------------------------------------------
-# Dashboard
-# --------------------------------------------------
-
+# ---------------------------------------
+# Home page
+# ---------------------------------------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return send_file("index.html")
 
 
-# --------------------------------------------------
-# API for live sensor data
-# --------------------------------------------------
-
+# ---------------------------------------
+# Sensor API
+# ---------------------------------------
 @app.route("/api/sensor")
 def sensor():
 
-    data = get_sensor_data()
+    try:
+        data = get_sensor_data()
 
-    return jsonify(data)
+        return jsonify(data)
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 
-# --------------------------------------------------
-# Start Flask
-# --------------------------------------------------
+# ---------------------------------------
+# Health check
+# ---------------------------------------
+@app.route("/health")
+def health():
 
+    return jsonify({
+        "status": "Flask server running",
+        "firebase": "connected"
+    })
+
+
+# ---------------------------------------
+# Run Flask
+# ---------------------------------------
 if __name__ == "__main__":
 
     app.run(
